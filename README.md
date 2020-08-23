@@ -26,7 +26,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 2. Create a Discord bot, invite him to your server, and paste the token in the config file.
 	- Follow [this guide](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token) to create a bot and invite it to your server.
 	- Insert the bot's token into the `discord -> token` field in the config.json file.
-	- Grant the bot permission to deafen players.
+	- Grant the bot permission to deafen and mute members.
 3. Insert the Guild (server) ID and the channel ID in the config.json file.
 	- Follow [this guide](https://support.discordapp.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-) to get the IDs
 	- Insert the guild ID at  `discord -> guild`  and the channel ID of the voice channel in which the bot should deafen players at  `discord -> channel`  in the config.json file.
