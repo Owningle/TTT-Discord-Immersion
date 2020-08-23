@@ -24,7 +24,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 	npm install --prefix ./discord_bot/
 	```
 2. Create a Discord bot, invite him to your server, and paste the token in the config file.
-	- Follow [this guide](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token) to create a bot and invite it to your server.
+	- Follow [this guide](https://github.com/Owningle/TTT-Discord-Immersion/wiki/Creating-a-Discord-Bot) to create a bot and invite it to your server.
 	- Insert the bot's token into the `discord -> token` field in the config.json file.
 	- Grant the bot permission to deafen and mute members.
 3. Insert the Guild (server) ID and the channel ID in the config.json file.
