@@ -32,7 +32,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 	- Insert the guild ID at  `discord -> guild`  and the channel ID of the voice channel in which the bot should deafen players at  `discord -> channel`  in the config.json file.
 4. Add the addon to the Garry's Mod server.
 	- Move the `gmod_addon` folder to `garrysmod/addons` and rename it to something suitable e.g. `ttt_discord_immersion`.
-	- Or add the [workshop addon]() to the servers collection.
+	- Or add the [workshop addon](https://steamcommunity.com/sharedfiles/filedetails/?id=2206858780) to the servers collection.
 5.  Add an addon to enable proximity voice chat in game.
     - I reccomend [this one](https://steamcommunity.com/sharedfiles/filedetails/?id=2051674221).
 6. Add the `-allowlocalhttp` start parameter to the Garry's Mod server
