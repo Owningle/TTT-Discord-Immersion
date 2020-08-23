@@ -42,7 +42,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
  - If you are in the configured voice channel, the round has started, and your connected with discord, the bot will deafen you.
 
 ## Credits
-- This was based off of [ttt_discord_bot]([https://github.com/marceltransier/ttt_discord_bot](https://github.com/marceltransier/ttt_discord_bot)) but has been rewritten and heavily modified.
+- This was based off of [ttt_discord_bot](https://github.com/marceltransier/ttt_discord_bot) but has been rewritten and heavily modified.
 - [Discord.js](https://discord.js.org/) is used in this project.
 - Thanks to the people supporting and developing the TTT Gamemode.
 
