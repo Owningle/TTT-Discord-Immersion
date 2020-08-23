@@ -33,6 +33,8 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 4. Add the addon to the Garry's Mod server.
 	- Move the `gmod_addon` folder to `garrysmod/addons` and rename it to something suitable e.g. `ttt_discord_immersion`.
 	- Or add the [workshop addon]() to the servers collection.
+5. Add the `-allowlocalhttp` start parameter to the Garry's Mod server
+    - Open the file that you run to start the Garry's Mod server, and add `-allowlocalhttp` to the line which runs the Garry's Mod server exe file (`srcds.exe`).
 
 ### Usage
  - Start the bot by running the node command in the `discord_bot` folder.
