@@ -208,17 +208,17 @@ hook.Add("PlayerSay", "ttt_dcrdint_PlayerSay", function(ply,msg)
 end)
 
 function playerdeath(ply, attacker, dmg)
+    if GetConVar("ttt_dcrdint_phoenixdeafen"):GetBool() then
+        if ply:GetRole() == ROLE_RESURRECTOR or ply:GetRole() == ROLE_PHOENIX then
+            if !phoenixDead[ply] then
+                phoenixDead[ply] = true
+                return
+            end
+        end
+    end
     if (attacker.IsPlayer() and attacker ~= ply) then
         if attacker:GetRole() == ROLE_INFECTED then
             return
-        end
-        if GetConVar("ttt_dcrdint_phoenixdeafen"):GetBool() then
-            if ply:GetRole() == ROLE_RESURRECTOR or ply:GetRole() == ROLE_PHOENIX then
-                if !phoenixDead[ply] then
-                    phoenixDead[ply] = true
-                    return
-                end
-            end
         end
         if ply:GetRole() == ROLE_JESTER then
             return
