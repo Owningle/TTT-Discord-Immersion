@@ -20,7 +20,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 	```bash
 	cd ~
 	git clone https://github.com/Owningle/TTT-Discord-Immersion.git
-	cd ttt_discord_bot
+	cd TTT-Discord-Immersion
 	npm install --prefix ./discord_bot/
 	```
 2. Create a Discord bot, invite him to your server, and paste the token in the config file.
