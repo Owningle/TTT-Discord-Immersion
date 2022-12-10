@@ -15,10 +15,10 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
  - You must have a Garry's Mod server installed and set up with the TTT Gamemode.
 
 ### Installation
-1. Install CHTTP on the server. (https://github.com/timschumi/gmod-chttp)
-1. Clone/Download this repository, one of the follwing.
-	- ```git clone https://github.com/Owningle/TTT-Discord-Immersion.git```
-	- Clicking the dropdown for `Code` and then clicking `Dowload as Zip`
+1. Install [CHTTP](https://github.com/timschumi/gmod-chttp) on the server.
+1. Install the addon, one of the follwing.
+	- Downloading from this repository and then adding it to the addons folder of your server.
+	- Adding the [worksop version](https://steamcommunity.com/sharedfiles/filedetails/?id=2206858780) to the servers collection.
 2. Create a Discord bot, invite it to your server, and set the token for the addon.
 	- Follow [this guide](https://github.com/Owningle/TTT-Discord-Immersion/wiki/Creating-a-Discord-Bot) to create a bot and invite it to your server.
 	- Set the convar `discord_token` to your bots token.
@@ -28,6 +28,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 	- Set the convar `discord_guild` to your server's ID.
 5.  Add an addon to enable proximity voice chat in game.
     - I reccomend [this one](https://steamcommunity.com/sharedfiles/filedetails/?id=2051674221).
+6. Add the workshop version of this 
 
 ### Usage
  - The convar `discord_enabled` enables (1) / disables (0) the bot.
