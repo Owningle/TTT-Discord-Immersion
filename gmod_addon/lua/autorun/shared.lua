@@ -1,5 +1,14 @@
 AddCSLuaFile()
 resource.AddFile("materials/deaf-icon.png")
+
+local function log(msg)
+    print('[Discord] ' .. msg)
+end
+
+local function err(msg)
+    print('[Discord] [ERROR] ' .. msg)
+end
+
 if (CLIENT) then
 
 	local drawDeaf = false
@@ -21,266 +30,223 @@ if (CLIENT) then
 end
 
 util.AddNetworkString("drawDeaf")
-CreateConVar("ttt_dcrdint_host", "localhost", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Sets the node server address.")
-CreateConVar("ttt_dcrdint_port", "37405", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Sets the node server port.")
-CreateConVar("ttt_dcrdint_name", "[TTT Discord Immersion] ", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Sets the Plugin Prefix for helpermessages.") --The name which will be displayed in front of any Message
-CreateConVar("ttt_dcrdint_cachefile", "ttt_dcrdint.dat", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Sets the cache file used tro store discord and steam ids that have been paired.")
-CreateConVar("ttt_dcrdint_bottries", 4, FCVAR_ARCHIVE + FCVAR_NOTIFY, "Sets the amount of times the addon should try and communicate with the discord bot server.")
-CreateConVar("ttt_dcrdint_enabled", 1, FCVAR_ARCHIVE + FCVAR_NOTIFY, "Enable or disables the addon.")
-CreateConVar("ttt_dcrdint_phoenixdeafen", 1, FCVAR_ARCHIVE + FCVAR_NOTIFY, "Enables or disables the deafening of the phoenix on first death.")
 
-phoenixDead = {}
-deafened = {}
+local token         = CreateConVar('discord_token', '', FCVAR_ARCHIVE, 'Set the bot token.')
+local guildID       = CreateConVar('discord_guild', '', FCVAR_ARCHIVE, 'Set the guild the bot is in')
+local enabled       = CreateConVar('discord_enabled', 1, FCVAR_ARCHIVE + FCVAR_NOTIFY, 'Enable / disable the bot')
 
-currentlyPrep = false
-denyDeafen = true
-print("DISCORD INTEGRATION ENABLED")
-idTable = {}
-idTable_raw = file.Read( GetConVar("ttt_dcrdint_cachefile"):GetString(), "DATA" )
-if (idTable_raw) then
-    idTable = util.JSONToTable(idTable_raw)
+if pcall(require, 'chttp') then
+    log('Using CHTTP (timschumi/gmod-chttp)')
+    HTTP = CHTTP
+else
+    err('CHTTP is not installed!! The addon will not work without it. Please install it and then re-enable this addon: https://github.com/timschumi/gmod-chttp')
+    enabled:SetBool(false)
 end
 
-function printCon(message, error)
-    if error then
-        prefix = "[WARN] - "..GetConVar("ttt_dcrdint_name"):GetString()
-    else
-        prefix = GetConVar("ttt_dcrdint_name"):GetString()
+local function request(method, endpoint, fail, success, body)
+
+    if not enabled:GetBool() then return end
+    
+    fail = function(msg) err('Unable to communicate with the Discord API:\n'..msg) end
+
+    local req = {
+        failed = fail,
+        success = success,
+        method = method,
+        url = 'https://discord.com/api' .. endpoint,
+        body = body,
+        headers = {
+            ['Authorization'] = 'Bot ' .. token:GetString(),
+        }
+    }
+
+    if body then
+        req['type'] = 'application/json'
     end
-    print(prefix..message)
+
+    CHTTP(req)
 end
 
+local kvs = {}
+kvs.data = {}
 
-function saveIDs()
-	file.Write( GetConVar("ttt_dcrdint_cachefile"):GetString(), util.TableToJSON(idTable))
+function kvs:open( filename )
+
+    self.filename = filename
+    self.data_raw = file.Read(filename, 'DATA')
+    self.data = {}
+
+    if self.data_raw then
+        self.data = util.JSONToTable(self.data_raw)
+    end
 end
 
-function GET(req,params,cb,tries)
-	httpAdress = ("http://"..GetConVar("ttt_dcrdint_host"):GetString()..":"..GetConVar("ttt_dcrdint_port"):GetString())
-	http.Fetch(httpAdress,function(res)
-			--print(res)
-		cb(util.JSONToTable(res))
-	end,function(err)
-		print("["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Request to bot failed. Is the bot running?")
-		print("Err: "..err)
-		if (!tries) then tries = GetConVar("ttt_dcrdint_bottries"):GetInt() end
-		if (tries != 0) then GET(req,params,cb, tries-1) end
-	end,{req=req,params=util.TableToJSON(params)})
+function kvs:get( key )
+    return self.data[key]
 end
 
-function sendClientIconInfo(ply,deaf)
-	net.Start("drawDeaf")
-	net.WriteBool(deaf)
-	net.Send(ply)
+function kvs:set( key, value )
+    self.data[key] = value
+    file.Write(self.filename, util.TableToJSON(self.data, true))
 end
 
-function sendClientIconInfoAll(deaf)
-	net.Start("drawDeaf")
-	net.WriteBool(deaf)
-	net.Broadcast()
+kvs:open('discordids.dat')
+
+local function findUserByID( id, fail, success )
+    
+    request('GET', '/guilds/'..guildID:GetString()..'/members/'..id, nil, function(code, body, headers)
+        if code ~= 200 then
+            fail()
+        end
+        
+        res = util.JSONToTable(body)
+        success(res)
+    end)
 end
 
-function isDeafened(ply)
-	return deafened[ply]
-end
+local function findUserByNameTag( tag, name, fail, success, after )
 
-function idString()
-    idStringBuilder = ""
-    firstItteration = true
-    for _, ply in ipairs(player.GetAll()) do
-        for steam, discordID in pairs(idTable) do
-            if ply:SteamID() == steam then
-                print(steam.." True")
-                if firstItteration then
-                    idStringBuilder = discordID
-                    firstItteration = false
-                else
-                    print(steam.." False")
-                    idStringBuilder = idStringBuilder..",;,"..discordID
-              end
+    local endpoint = '/guilds/'..guildID:GetString()..'/members?limit=1000'
+    if after then endpoint = endpoint .. '&after=' .. after end
+
+    request('GET', endpoint, nil, function(code, body, headers)
+
+        if code ~= 200 then
+            return fail()
+        end 
+
+        res = util.JSONToTable(body)
+        local foundTag = nil
+
+        for k, v in pairs(res) do
+            if tag == v.user.discriminator then
+
+                if foundTag and not username then
+                    return fail()
+                end
+
+                foundTag = v
+
+                if name == v.user.username then
+                    return success(v)
+                end
             end
         end
-    end
-    return idStringBuilder
-end
 
-function unDeafen(ply)
-    if (idTable[ply:SteamID()]) then
-        GET("undeafen",{ids=idTable[ply:SteamID()]}, function(res)
-            if (res.success) then
-                if (ply ~= nil) then 
-                    ply:PrintMessage(HUD_PRINTCENTER,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You're not deafened in discord!")
-                end
-                sendClientIconInfo(ply,false)
-                deafened[ply] = false
-            else
-                print("["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Error: "..res.error)
-            end
-        end)
-    end
-end
-
-function deafenAll()
-    if (!denyDeafen) then
-        if (!currentlyPrep) then
-            GET("deafen", {ids=idString()}, function(res)
-                if (res.success) then
-                    PrintMessage(HUD_PRINTCENTER,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You're deafened in discord!")
-                    sendClientIconInfoAll(true)
-                    for i=#deafened -1, 0, -1 do
-                        deafened[i] = true
-                    end
-                else
-                    print("["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Error: "..res.error)
-                end
-            end)
+        if foundTag then
+            return success(foundTag)
         end
-    end
-end
 
-function deafen(ply)
-    if (!denyDeafen) then
-        if (!currentlyPrep) then
-            GET("deafen", {ids=idTable[ply:SteamID()]}, function(res)
-                if (res.success) then
-                    ply:PrintMessage(HUD_PRINTCENTER,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You're deafened in discord!")
-                    sendClientIconInfo(ply, true)
-                    deafened[ply] = true
-                else
-                    print("["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Error: "..res.error)
-                end
-            end)
-        end
-    end
-end
-
-function unDeafenAll()
-    GET("undeafen",{ids=idString()}, function(res)
-        if (res.success) then
-            PrintMessage(HUD_PRINTCENTER,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You're not deafened in discord!")
-            sendClientIconInfoAll(false)
-            for i = #deafened -1, 0, -1 do
-                deafened[i] = false
-            end
+        if table.getn(res) == 1000 then
+            return findUserByNameTag(tag, name, fail, success, tonumber(after) + 1000)
         else
-            print("["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Error: "..res.error)
+            return fail()
         end
     end)
 end
 
-function commonRoundState()
-    if gmod.GetGamemode().Name == "Trouble in Terrorist Town" or
-       gmod.GetGamemode().Name == "TTT2 (Advanced Update)" then
-      -- Round state 3 => Game is running
-      return ((GetRoundState() == 3) and 1 or 0)
+local function findUser( search, fail, success )
+
+    if string.find(search, '#') then
+        local tag = string.sub(search, -4)
+        local username = string.sub(search, 0, -5)
+        findUserByNameTag(tag, username, fail, success)
+
+    elseif #search > 4 then
+        findUserByID(search, fail, success)
+
+    elseif #search == 4 then
+        findUserByNameTag(search, nil, fail, success)
     end
-  
-    if gmod.GetGamemode().Name == "Murder" then
-      -- Round state 1 => Game is running
-      return ((gmod.GetGamemode():GetRound() == 1) and 1 or 0)
-    end
-  
-    -- Round state could not be determined
-    return -1
 end
 
+local plymeta = FindMetaTable('Player')
+function plymeta:getDiscordID() return kvs:get(self:SteamID()) end
+function plymeta:setDiscordID(id) return kvs:set(self:SteamID(), id) end
 
+function plymeta:setDiscordDeaf( val )
 
+    if not self:getDiscordID() then return end
+    if not enabled:GetBool() or GAMEMODE.Name == 'Sandbox' then return end
+    if val == self.discord_deaf then return end
+    local oldstate = self.discord_deaf
+    self.discord_deaf = val
 
-hook.Add("PlayerSay", "ttt_dcrdint_PlayerSay", function(ply,msg)
-    if (string.sub(msg,1,9) != '!discord ') then return end
-    tag = string.sub(msg,10)
-    tag_utf8 = ""
-  
-    for p, c in utf8.codes(tag) do
-      tag_utf8 = string.Trim(tag_utf8.." "..c)
-    end
-    GET("connect",{tag=tag_utf8},function(res)
-        if (res.answer == 0) then ply:PrintMessage(HUD_PRINTTALK,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."No guild member with a discord tag like '"..tag.."' found.") end
-        if (res.answer == 1) then ply:PrintMessage(HUD_PRINTTALK,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."Found more than one user with a discord tag like '"..tag.."'. Please specify!") end
-        if (res.tag && res.id) then
-            ply:PrintMessage(HUD_PRINTTALK,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."SteamID '"..ply:SteamID().."' successfully bound to Discord tag '"..res.tag.."'")
-            idTable[ply:SteamID()] = res.id
-            saveIDs()
-        end
-    end)
-    return ""
-end)
-
-function playerdeath(ply, attacker, dmg)
-    if GetConVar("ttt_dcrdint_phoenixdeafen"):GetBool() then
-        if ply:GetRole() == ROLE_RESURRECTOR or ply:GetRole() == ROLE_PHOENIX then
-            if !phoenixDead[ply] then
-                phoenixDead[ply] = true
-                return
+    request('PATCH', '/guilds/'..guildID:GetString()..'/members/'..self:getDiscordID(), nil, function(code, body, headers)
+        if code == 204 then
+            if val then
+                self:PrintMessage(HUD_PRINTCENTER, 'You are deafened in Discord!')
+            else
+                self:PrintMessage(HUD_PRINTCENTER, 'You are no longer deafened in Discord!')
             end
-        end
-    end
-    if (attacker.IsPlayer() and attacker ~= ply) then
-        if attacker:GetRole() == ROLE_INFECTED then
+
+            net.Start('drawDeaf')
+            net.WriteBool(val)
+            net.Send(self)
             return
         end
-        if ply:GetRole() == ROLE_JESTER then
-            return
-        end
-    end
-    unDeafen(ply)
+
+        self.discord_deaf = oldstate
+        res = util.JSONToTable(body)
+        err('Failed to deafen user ' .. self:Nick() .. ': Code(' .. code .. '/' .. res.code .. ') ' .. res.message)
+
+    end, '{"deaf": ' .. tostring(val) .. '}')
+
 end
 
+hook.Add('PlayerSay', 'TTTDiscordCommands', function(ply, msg)
+    if string.sub(msg, 1, 8) != '!discord' then return end
 
+    local inp = string.sub(msg, 10)
 
-hook.Add("PlayerInitialSpawn", "ttt_dcrdint_PlayerInitialSpawn", function(ply)
-	if (idTable[ply:SteamID()]) then
-        ply:PrintMessage(HUD_PRINTTALK,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You are connected with discord.")
-	else
-		ply:PrintMessage(HUD_PRINTTALK,"["..GetConVar("ttt_dcrdint_name"):GetString().."] ".."You are not connected with discord. Write '!discord DISCORDTAG' in the chat. E.g. '!discord marcel.js#4402'")
-	end
+    findUser(inp, function()
+        ply:PrintMessage(HUD_PRINTTALK, 'Failed to find user!')
+    end,
+
+    function(dUser)
+        ply:setDiscordID(dUser.user.id)
+        ply:PrintMessage(HUD_PRINTTALK, 'Successfully bound to user ' .. dUser.user.username .. '#' .. dUser.user.discriminator)
+    end)
+
+    return ''
 end)
-hook.Add("PlayerDisconnected", "ttt_dcrdint_PlayerDisconnected", function(ply)
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then unDeafen(ply) end
-  end)
-hook.Add("ShutDown","ttt_dcrdint_ShutDown", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then unDeafenAll() end
-end)
-hook.Add("TTTEndRound", "ttt_dcrdint_TTTEndRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then
-        denyDeafen = true
-        unDeafenAll()
-        phoenixDead = {}
+
+hook.Add('PlayerSpawn', 'PlayerSpawnDiscord', function(ply)
+    if not ply:getDiscordID() then
+        ply:PrintMessage(HUD_PRINTTALK, 'You are not connect to discord! Please use the !discord {ID or Tag or Username#Tag} command.')
+    end
+
+    if GAMEMODE.round_state == ROUND_ACTIVE then
+        ply:setDiscordDeaf(true)
     end
 end)
-hook.Add("OnEndRound", "ttt_dcrdint_OnEndRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then
-        denyDeafen = true
-        unDeafenAll()
+
+hook.Add('PlayerDeath', 'PlayerSpawnDiscord', function(ply, infl, atk)
+    if GAMEMODE.round_state == ROUND_ACTIVE and ply:GetRole() ~= ROLE_JESTER and ply:GetRole() ~= ROLE_SWAPPER then
+        ply:setDiscordDeaf(false)
     end
 end)
-hook.Add("TTTBeginRound", "ttt_dcrdint_TTTBeginRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then deafenAll() end
+
+hook.Add('TTTBeginRound', 'TTTBeginRoundDiscord', function(ply)
+    DiscordDeafChecker()
 end)
-hook.Add("OnStartRound", "ttt_dcrdint_OnStartRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then deafenAll() end
+
+hook.Add('TTTEndRound', 'TTTEndRoundDiscord', function(ply)
+    DiscordDeafChecker()
 end)
-hook.Add("DoPlayerDeath", "ttt_dcrdint_DoPlayerDeath", function(ply, attacker, dmg)
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then 
-        if (commonRoundState() == 1) then
-            playerdeath(ply, attacker, dmg)
+
+hook.Add('ShutDown', 'ShutDownDiscord', function(ply)
+    DiscordDeafChecker()
+end)
+
+function DiscordDeafChecker()
+    for k, v in pairs(player.GetAll()) do
+        if GAMEMODE.round_state == ROUND_ACTIVE then
+            v:setDiscordDeaf(v:Alive())
+        else
+            v:setDiscordDeaf(false)
         end
     end
-end)
-hook.Add("TTTBeginRound", "ttt_dcrdint_TTTBeginRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then
-        denyDeafen = false
-        currentlyPrep = false
-        deafenAll()
-    end
-end)
-hook.Add("PlayerSpawn", "ttt_dcrdint_PlayerSpawn", function(ply)
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then deafen(ply) end
-end)
-hook.Add("TTTPrepareRound", "ttt_dcrdint_TTTPrepareRound", function()
-    if GetConVar("ttt_dcrdint_enabled"):GetBool() then
-        denyDeafen = true
-        currentlyPrep = true
-    end
-end)
+end
+
+timer.Create('DiscordChecker', 1, 0, DiscordDeafChecker)
