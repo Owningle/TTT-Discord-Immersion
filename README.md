@@ -13,39 +13,29 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 
 ### Prerequisites
  - You must have a Garry's Mod server installed and set up with the TTT Gamemode.
- - You must have [Nodejs](https://nodejs.org) installed.
 
 ### Installation
-1. Clone this repository and install any dependencies.
-	```bash
-	cd ~
-	git clone https://github.com/Owningle/TTT-Discord-Immersion.git
-	cd TTT-Discord-Immersion
-	npm install --prefix ./discord_bot/
-	```
-2. Create a Discord bot, invite him to your server, and paste the token in the config file.
+1. Install CHTTP on the server. (https://github.com/timschumi/gmod-chttp)
+1. Clone/Download this repository, one of the follwing.
+	- ```git clone https://github.com/Owningle/TTT-Discord-Immersion.git```
+	- Clicking the dropdown for `Code` and then clicking `Dowload as Zip`
+2. Create a Discord bot, invite it to your server, and set the token for the addon.
 	- Follow [this guide](https://github.com/Owningle/TTT-Discord-Immersion/wiki/Creating-a-Discord-Bot) to create a bot and invite it to your server.
-	- Insert the bot's token into the `discord -> token` field in the config.json file.
+	- Set the convar `discord_token` to your bots token.
 	- Grant the bot permission to deafen and mute members.
-3. Insert the Guild (server) ID and the channel ID in the config.json file.
+3. Set the server ID.
 	- Follow [this guide](https://support.discordapp.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-) to get the IDs
-	- Insert the guild ID at  `discord -> guild`  and the channel ID of the voice channel in which the bot should deafen players at  `discord -> channel`  in the config.json file.
-4. Add the addon to the Garry's Mod server.
-	- Move the `gmod_addon` folder to `garrysmod/addons` and rename it to something suitable e.g. `ttt_discord_immersion`.
-	- Or add the [workshop addon](https://steamcommunity.com/sharedfiles/filedetails/?id=2206858780) to the servers collection.
+	- Set the convar `discord_guild` to your server's ID.
 5.  Add an addon to enable proximity voice chat in game.
     - I reccomend [this one](https://steamcommunity.com/sharedfiles/filedetails/?id=2051674221).
-6. Add the `-allowlocalhttp` start parameter to the Garry's Mod server
-    - Open the file that you run to start the Garry's Mod server, and add `-allowlocalhttp` to the line which runs the Garry's Mod server exe file (`srcds.exe`).
 
 ### Usage
- - Start the bot by running the node command in the `discord_bot` folder.
+ - The convar `discord_enabled` enables (1) / disables (0) the bot.
  - Connect your steam account with the bot by typing `!discord YourDiscordTag`in the in-game chat. E.g `!discord Owningle#5525`.
- - If you are in the configured voice channel, the round has started, and your connected with discord, the bot will deafen you.
+ - If you are in a voice channel, the round has started, and your connected with discord, the bot will deafen you.
 
 ## Credits
-- This was based off of [ttt_discord_bot](https://github.com/marceltransier/ttt_discord_bot) but has been rewritten and heavily modified.
-- [Discord.js](https://discord.js.org/) is used in this project.
+- [ttt_discord_bot](https://github.com/marceltransier/ttt_discord_bot) This was a huge help for the first version of this addon.
 - Thanks to the people supporting and developing the TTT Gamemode.
 
 ## Contributing
