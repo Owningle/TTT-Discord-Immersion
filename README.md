@@ -32,7 +32,7 @@ If you need any help, join my [discord server](https://discord.gg/pcuQrzq).
 
 ### Usage
  - The convar `discord_enabled` enables (1) / disables (0) the bot.
- - Connect your steam account with the bot by typing `!discord YourDiscordID`in the in-game chat. E.g `!discord 241304387924918272` (Can get ID by right clicking on yourself and clicking `Copy ID`.
+ - Connect your steam account with the bot by typing `!discord YourDiscordID`in the in-game chat. E.g `!discord 241304387924918272` (Can get ID by right clicking on yourself and clicking `Copy ID`).
  - If you are in a voice channel, the round has started, and your connected with discord, the bot will deafen you.
 
 ## Credits
